@@ -1,29 +1,38 @@
-const AssetKeys = {
-  BACKGROUND: 'BACKGROUND',
-  FOG: 'FOG',
-  FOREGROUND: 'FOREGROUND',
-  TREES: 'TREES',
-};
-
 class Game extends Phaser.Scene {
-  constructor() {
-    super({ key: 'Game' });
-  }
 
   preload() {
-    this.load.image(AssetKeys.BACKGROUND, 'assets/images/background.png');
-    this.load.image(AssetKeys.FOG, 'assets/images/fog.png');
-    this.load.image(AssetKeys.FOREGROUND, 'assets/images/foreground.png');
-    this.load.image(AssetKeys.TREES, 'assets/images/trees.png');
+    this.load.image('BACKGROUND', 'assets/images/background.png');
+    this.load.image('FOG', 'assets/images/fog.png');
+    this.load.image('FOREGROUND', 'assets/images/foreground.png');
+    this.load.image('TREES', 'assets/images/trees.png');
+    this.load.image('ground', 'assets/images/platform.png');
   }
 
   create() {
-    const { height, width } = this.scale;
+    const height = gameConfig.scale.height; 
+    const width = gameConfig.scale.width;
 
-    this.bg = this.add.tileSprite(0, 0, width, height, AssetKeys.BACKGROUND).setScale(2);
-    this.trees = this.add.tileSprite(0, 0, width, height, AssetKeys.TREES).setScale(2);
-    this.fg = this.add.tileSprite(0, 0, width, height, AssetKeys.FOREGROUND).setScale(2);
-    this.fog = this.add.tileSprite(0, 0, width, height, AssetKeys.FOG).setScale(2);
+    this.bg = this.add.tileSprite(0, 0, width, height,'BACKGROUND').setScale(2);
+    this.trees = this.add.tileSprite(0, 0, width, height, 'TREES').setScale(2);
+    this.fg = this.add.tileSprite(0, 0, width, height, 'FOREGROUND').setScale(2);
+    this.fog = this.add.tileSprite(0, 0, width, height, 'FOG').setScale(2);
+    this.platforms = this.physics.add.group(); 
+
+    const spacingX = 250; 
+
+for (let i = 0; i < 999; i++) {
+    const posX = i * spacingX;
+    const posY = Phaser.Math.Between(50, 400);
+    this.platforms.create(posX, posY, 'ground');
+}
+   
+
+    this.platforms.children.iterate(child => {
+      child.body.allowGravity = false;
+      child.body.immovable = true;
+    });
+    //this.physics.add.collider(this.player,this.platforms)
+  
   }
 
   update() {
@@ -31,17 +40,30 @@ class Game extends Phaser.Scene {
     this.trees.tilePositionX += 0.14;
     this.fg.tilePositionX += 0.2;
     this.fog.tilePositionX += 0.7;
+
+    this.platforms.children.iterate(child => {
+      child.x += (this.bg.tilePositionX - this.bg.width) / 500; 
+    });
   }
 }
 
 const gameConfig = {
   type: Phaser.CANVAS,
+  width: 800,
+  height: 460,
   pixelArt: true,
   scale: {
     parent: 'game-container',
-    width: 640,
-    height: 416,
+    width: 800,
+    height: 460,
   },
+  physics: {
+    default: 'arcade',
+    arcade: {
+        gravity: { y: 500 },
+        debug: true
+    }
+},
   backgroundColor: '#5c5b5b',
   scene: [Game],
 };
