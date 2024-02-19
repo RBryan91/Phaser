@@ -53,8 +53,11 @@ class Game extends Phaser.Scene {
   }
 
   create() {
+    //config
     const width = gameConfig.scale.width;
     const height = gameConfig.scale.height;
+
+    //creation du monde
 
     this.bg = this.add
       .tileSprite(0, 0, width, height, AssetKeys.BACKGROUND)
@@ -75,15 +78,36 @@ class Game extends Phaser.Scene {
     });
 
     this.player = this.physics.add.sprite(300, 200, "dude");
+    this.player.setSize(40, 60);
     this.player.setCollideWorldBounds(true);
+
     this.coin = this.physics.add.sprite(200, 300, "coin");
     this.coin.setCollideWorldBounds(true);
+    this.coin.setSize(30, 27);
+
     this.goomba = this.physics.add.sprite(600, 300, "goomba");
     this.goomba.setCollideWorldBounds(true);
-    this.physics.add.overlap(this.player, this.coin, collectCoin, null, this);
+    this.goomba.setSize(30, 37);
 
     this.ground = this.physics.add.staticGroup();
     this.ground.create(width, 416, AssetKeys.GROUND).setScale(2).refreshBody();
+
+    //plateformes
+    const spacingX = 250;
+    this.platforms = this.physics.add.group();
+
+    for (let i = 0; i < 999; i++) {
+      const posX = i * spacingX;
+      const posY = Phaser.Math.Between(100, 350);
+      this.platforms.create(posX, posY, "platform");
+    }
+
+    this.platforms.children.iterate((child) => {
+      child.body.allowGravity = false;
+      child.body.immovable = true;
+    });
+
+    //creation des animations
 
     this.anims.create({
       key: "turn",
@@ -125,20 +149,9 @@ class Game extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    const spacingX = 250;
-    this.platforms = this.physics.add.group();
+    //add physics
 
-    for (let i = 0; i < 999; i++) {
-      const posX = i * spacingX;
-      const posY = Phaser.Math.Between(100, 350);
-      this.platforms.create(posX, posY, "platform");
-    }
-
-    this.platforms.children.iterate((child) => {
-      child.body.allowGravity = false;
-      child.body.immovable = true;
-    });
-
+    this.physics.add.overlap(this.player, this.coin, collectCoin, null, this);
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.ground);
     this.physics.add.collider(this.coin, this.platforms);
@@ -153,20 +166,26 @@ class Game extends Phaser.Scene {
     if (gameOver) {
       return;
     }
+    if (this.player.x <= 31) {
+      handleGameOver(this.player);
+    }
 
+    //deplacement des sprites
     this.bg.tilePositionX += 0.4;
     this.trees.tilePositionX += 0.56;
     this.fg.tilePositionX += 0.8;
     this.fog.tilePositionX += 2.8;
+
+    this.platforms.children.iterate((child) => {
+      child.x -= 5;
+    });
+
     this.player.x -= 1.6;
 
     this.coin.anims.play("turn", true);
     this.goomba.anims.play("attack", true);
 
-    if (this.player.x <= 31) {
-      handleGameOver(this.player);
-    }
-
+    //controle
     if (this.cursors.left.isDown) {
       this.player.setVelocityX(-160);
       this.player.anims.play("left", true);
@@ -181,13 +200,9 @@ class Game extends Phaser.Scene {
         this.player.anims.play("turnLeft");
       }
     }
-
     if (this.cursors.space.isDown && this.player.body.touching.down) {
       this.player.setVelocityY(-600);
     }
-    this.platforms.children.iterate((child) => {
-      child.x -= 5; /* (this.bg.tilePositionX - this.bg.width) / 100; */
-    });
   }
 }
 
