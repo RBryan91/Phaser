@@ -81,9 +81,6 @@ class Game extends Phaser.Scene {
     this.player.setSize(40, 60);
     this.player.setCollideWorldBounds(true);
 
-    this.coin = this.physics.add.sprite(200, 300, "coin");
-    this.coin.setCollideWorldBounds(true);
-    this.coin.setSize(30, 27);
 
     this.goomba = this.physics.add.sprite(600, 300, "goomba");
     this.goomba.setCollideWorldBounds(true);
@@ -96,10 +93,15 @@ class Game extends Phaser.Scene {
     const spacingX = 250;
     this.platforms = this.physics.add.group();
 
-    for (let i = 0; i < 999; i++) {
+     this.coins = [];
+    for (let i = 0; i < 10; i++) {
       const posX = i * spacingX;
       const posY = Phaser.Math.Between(100, 350);
       this.platforms.create(posX, posY, "platform");
+      this.coin = this.physics.add.sprite(posX, posY-50, "coin");
+      this.physics.add.overlap(this.player, this.coin, collectCoin, null, this);
+      this.coin.body.allowGravity = false;
+      this.coins.push(this.coin);
     }
 
     this.platforms.children.iterate((child) => {
@@ -151,7 +153,6 @@ class Game extends Phaser.Scene {
 
     //add physics
 
-    this.physics.add.overlap(this.player, this.coin, collectCoin, null, this);
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.ground);
     this.physics.add.collider(this.coin, this.platforms);
@@ -182,7 +183,10 @@ class Game extends Phaser.Scene {
 
     this.player.x -= 1.6;
 
-    this.coin.anims.play("turn", true);
+    this.coins.forEach((coin) => {
+      coin.anims.play("turn",true);
+      coin.x -= 5;
+    });
     this.goomba.anims.play("attack", true);
 
     //controle
