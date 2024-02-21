@@ -15,7 +15,7 @@ var coin;
 var ground;
 var goomba;
 var platforms;
-var coins = [];
+var rush;
 
 const gameConfig = {
   type: Phaser.CANVAS,
@@ -30,8 +30,8 @@ const gameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 1000 },
-      debug: false,
+      gravity: { y: 1200 },
+      debug: true,
     },
   },
   backgroundColor: "#5c5b5b",
@@ -49,6 +49,7 @@ function preload() {
   this.load.image(AssetKeys.TREES, "assets/images/trees.png");
   this.load.image(AssetKeys.GROUND, "assets/images/ground.png");
   this.load.image("platform", "assets/images/platform.png");
+  this.load.image("rush", "assets/images/rush.png");
 
   this.load.spritesheet("dude", "assets/images/zelda.png", {
     frameWidth: 63,
@@ -90,50 +91,65 @@ function create() {
   });
 
   player = this.physics.add.sprite(300, 200, "dude");
-  player.setSize(40, 60);
+  player.setSize(35, 50);
   player.setCollideWorldBounds(true);
 
   ground = this.physics.add.staticGroup();
   ground.create(width, 416, AssetKeys.GROUND).setScale(2).refreshBody();
 
-/*   goomba = this.physics.add.sprite(300, 350, "goomba");
-  this.physics.add.collider(goomba, platforms);
-  this.physics.add.collider(goomba, ground);
-  goomba.setCollideWorldBounds(false);
-  this.physics.add.overlap(player, goomba, handleCollision, null, this); */
-
   function createGoomba() {
     if (gameOver) {
       return;
     }
-    var y = Phaser.Math.Between(0, 350);
-    goomba = this.physics.add.sprite(600, y, "goomba");
+
+    rush = this.add.image(0, 0, "rush");
+    goomba = this.physics.add.sprite(600, 375, "goomba");
+    goomba.setSize(35, 35);
+    rush.setPosition(goomba.x + 75, goomba.y);
     this.physics.add.collider(goomba, platforms);
     this.physics.add.collider(goomba, ground);
     goomba.setCollideWorldBounds(false);
     this.physics.add.overlap(player, goomba, handleCollision, null, this);
-    this.time.delayedCall(2500, createGoomba, [], this);
+    this.time.delayedCall(1500, createGoomba, [], this);
   }
 
   createGoomba.call(this);
 
   //plateformes
-  const spacingX = 250;
+  let count = 0;
   platforms = this.physics.add.group();
 
-  for (let i = 0; i < 50; i++) {
-    const posX = i * spacingX;
-    const posY = Phaser.Math.Between(100, 350);
-    platforms.create(posX, posY, "platform");
-    coin = this.physics.add.sprite(posX, posY-50, "coin");
+  // Function to create a single platform and coin
+  function createPlatformAndCoin() {
+    if (gameOver) {
+      return;
+    }
+    const posX = game.config.width + 100;
+    const posY = Phaser.Math.Between(150, 300);
+    const platform = platforms.create(posX, posY, "platform");
+    platform.setSize(170, 25);
+    platform.setOffset(10, 2);
+    if (count % 3 === 0) {
+      coin = this.physics.add.sprite(posX, posY - 50, "coin");
+      coin.setSize(25, 25);
+      coin.setOffset(3, 2);
+      coin.body.allowGravity = false;
+      this.physics.add.overlap(player, coin, collectCoin, null, this);
+    }
+
+    count++;
+
+    // Apply physics properties to the created platform and coin
+    platform.body.allowGravity = false;
+    platform.body.immovable = true;
     coin.body.allowGravity = false;
-    coins.push(coin);
+
+    // Call the function recursively with a delay
+    this.time.delayedCall(1000, createPlatformAndCoin, [], this);
   }
 
-  platforms.children.iterate((child) => {
-    child.body.allowGravity = false;
-    child.body.immovable = true;
-  });
+  // Start creating platforms and coins with a delayed callback
+  createPlatformAndCoin.call(this);
 
   //creation des animations
 
@@ -183,14 +199,8 @@ function create() {
   this.cursors = this.input.keyboard.createCursorKeys();
 
   //add physics
-  for(let x = 0; x < coins.length; x ++){
-    this.physics.add.overlap(player, coins[x], function() { collectCoin(x) }, null, this);
-  }
-  this.physics.add.overlap(player, coin, collectCoin, null, this);
   this.physics.add.collider(player, platforms);
   this.physics.add.collider(player, ground);
-  this.physics.add.collider(coin, platforms);
-  this.physics.add.collider(coin, ground);
 }
 
 function update() {
@@ -198,7 +208,7 @@ function update() {
     goomba.anims.play("dead", true);
     setTimeout(() => {
       goomba.disableBody(true, true);
-      death = false
+      death = false;
     }, 200);
   } else {
     goomba.anims.play("attack", true);
@@ -219,13 +229,12 @@ function update() {
   platforms.children.iterate((child) => {
     child.x -= 5;
   });
-  
-  coins.forEach((coin) => {
-    coin.anims.play("turn",true);
-    coin.x -= 5;
-  });
 
-  goomba.x -= 8;
+  coin.anims.play("turn", true);
+  coin.x -= 5;
+
+  goomba.x -= 10;
+  rush.x -= 10;
   player.x -= 1.6;
 
   player.anims.play("right", true);
@@ -255,9 +264,8 @@ function handleGameOver() {
   gameOver = true;
 }
 
-function collectCoin(x) {
-  
-  coins[x].disableBody(true, true);
+function collectCoin() {
+  coin.disableBody(true, true);
   score += 10;
   scoreText.setText("Score: " + score);
 }
@@ -293,6 +301,7 @@ function handleCollision() {
   }
 }
 function killEnemy() {
+  rush.destroy();
   death = true;
 }
 
