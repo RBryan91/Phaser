@@ -30,7 +30,7 @@ const gameConfig = {
     default: "arcade",
     arcade: {
       gravity: { y: 1000 },
-      debug: true,
+      debug: false,
     },
   },
   backgroundColor: "#5c5b5b",
@@ -98,11 +98,11 @@ function create() {
   ground = this.physics.add.staticGroup();
   ground.create(width, 416, AssetKeys.GROUND).setScale(2).refreshBody();
 
-  goomba = this.physics.add.sprite(300, 350, "goomba");
+/*   goomba = this.physics.add.sprite(300, 350, "goomba");
   this.physics.add.collider(goomba, platforms);
   this.physics.add.collider(goomba, ground);
   goomba.setCollideWorldBounds(false);
-  this.physics.add.overlap(player, goomba, handleCollision, null, this);
+  this.physics.add.overlap(player, goomba, handleCollision, null, this); */
 
   function createGoomba() {
     if (gameOver) {
@@ -114,10 +114,10 @@ function create() {
     this.physics.add.collider(goomba, ground);
     goomba.setCollideWorldBounds(false);
     this.physics.add.overlap(player, goomba, handleCollision, null, this);
-    this.time.delayedCall(1500, createGoomba, [], this);
+    this.time.delayedCall(2500, createGoomba, [], this);
   }
 
-  //createGoomba.call(this);
+  createGoomba.call(this);
 
   //plateformes
   const spacingX = 250;
@@ -216,7 +216,7 @@ function update() {
   platforms.children.iterate((child) => {
     child.x -= 5;
   });
-  //goomba.x -= 8;
+  goomba.x -= 8;
   player.x -= 1.6;
 
   coin.anims.play("turn", true);
