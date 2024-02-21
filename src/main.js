@@ -15,6 +15,7 @@ var coin;
 var ground;
 var goomba;
 var platforms;
+var coins = [];
 
 const gameConfig = {
   type: Phaser.CANVAS,
@@ -92,9 +93,6 @@ function create() {
   player.setSize(40, 60);
   player.setCollideWorldBounds(true);
 
-  coin = this.physics.add.sprite(200, 300, "coin");
-  coin.setSize(30, 27);
-
   ground = this.physics.add.staticGroup();
   ground.create(width, 416, AssetKeys.GROUND).setScale(2).refreshBody();
 
@@ -123,10 +121,13 @@ function create() {
   const spacingX = 250;
   platforms = this.physics.add.group();
 
-  for (let i = 0; i < 999; i++) {
+  for (let i = 0; i < 50; i++) {
     const posX = i * spacingX;
     const posY = Phaser.Math.Between(100, 350);
     platforms.create(posX, posY, "platform");
+    coin = this.physics.add.sprite(posX, posY-50, "coin");
+    coin.body.allowGravity = false;
+    coins.push(coin);
   }
 
   platforms.children.iterate((child) => {
@@ -182,7 +183,10 @@ function create() {
   this.cursors = this.input.keyboard.createCursorKeys();
 
   //add physics
-
+  for(let x = 0; x < coins.length; x ++){
+    console.log('yes')
+    this.physics.add.overlap(player, coins[x], function() { collectCoin(x) }, null, this);
+  }
   this.physics.add.overlap(player, coin, collectCoin, null, this);
   this.physics.add.collider(player, platforms);
   this.physics.add.collider(player, ground);
@@ -216,10 +220,14 @@ function update() {
   platforms.children.iterate((child) => {
     child.x -= 5;
   });
+  coins.forEach((coin) => {
+    coin.anims.play("turn",true);
+    coin.x -= 5;
+  });
+
   //goomba.x -= 8;
   player.x -= 1.6;
 
-  coin.anims.play("turn", true);
   player.anims.play("right", true);
 
   //controle
@@ -247,8 +255,9 @@ function handleGameOver() {
   gameOver = true;
 }
 
-function collectCoin() {
-  coin.disableBody(true, true);
+function collectCoin(x) {
+  
+  coins[x].disableBody(true, true);
   score += 10;
   scoreText.setText("Score: " + score);
 }
