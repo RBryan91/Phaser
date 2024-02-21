@@ -220,16 +220,13 @@ function update() {
   platforms.children.iterate((child) => {
     child.x -= 5;
   });
-<<<<<<< HEAD
+  
   coins.forEach((coin) => {
     coin.anims.play("turn",true);
     coin.x -= 5;
   });
 
-  //goomba.x -= 8;
-=======
   goomba.x -= 8;
->>>>>>> charle
   player.x -= 1.6;
 
   player.anims.play("right", true);
