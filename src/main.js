@@ -184,7 +184,6 @@ function create() {
 
   //add physics
   for(let x = 0; x < coins.length; x ++){
-    console.log('yes')
     this.physics.add.overlap(player, coins[x], function() { collectCoin(x) }, null, this);
   }
   this.physics.add.overlap(player, coin, collectCoin, null, this);
