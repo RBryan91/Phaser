@@ -15,6 +15,7 @@ var coin;
 var ground;
 var goomba;
 var platforms;
+var traps;
 var rush;
 
 const gameConfig = {
@@ -50,6 +51,7 @@ function preload() {
   this.load.image(AssetKeys.GROUND, "assets/images/ground.png");
   this.load.image("platform", "assets/images/platform.png");
   this.load.image("rush", "assets/images/rush.png");
+  this.load.image("trap", "assets/images/pique.png")
 
   this.load.spritesheet("dude", "assets/images/zelda.png", {
     frameWidth: 63,
@@ -118,6 +120,7 @@ function create() {
   //plateformes
   let count = 0;
   platforms = this.physics.add.group();
+  traps = this.physics.add.group();
 
   // Function to create a single platform and coin
   function createPlatformAndCoin() {
@@ -129,12 +132,23 @@ function create() {
     const platform = platforms.create(posX, posY, "platform");
     platform.setSize(170, 25);
     platform.setOffset(10, 2);
+    const PosXVariable = posX + Phaser.Math.Between(-60,60);
     if (count % 3 === 0) {
       coin = this.physics.add.sprite(posX, posY - 50, "coin");
       coin.setSize(25, 25);
       coin.setOffset(3, 2);
       coin.body.allowGravity = false;
       this.physics.add.overlap(player, coin, collectCoin, null, this);
+    } else {
+      let NombreX = Phaser.Math.Between(1,3) 
+      if (NombreX === 2) {
+        const trap = traps.create(PosXVariable,posY-28,"trap");
+        trap.setSize(35, 15);
+        trap.setOffset(5,8)
+        trap.body.allowGravity = false;
+        trap.body.immovable = true;
+        this.physics.add.overlap(player, trap, handleGameOver, null, this);
+      }
     }
 
     count++;
@@ -227,6 +241,9 @@ function update() {
   this.fog.tilePositionX += 2.8;
 
   platforms.children.iterate((child) => {
+    child.x -= 5;
+  });
+  traps.children.iterate((child) => {
     child.x -= 5;
   });
 
