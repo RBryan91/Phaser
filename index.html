@@ -1,27 +1,34 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
-		<title>Phaser 3 - Parallax Scrolling Background</title>
-		<style>
-      html,
-      body,
-      .container {
-        margin-top: 50px;
-        width: 100vw;
-        overflow: hidden;
-        background: #d7d7d7;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-    </style>
-	</head>
-	<body>
-		<div class="container" id="game-container">
-    </div>
-		<script type="module" src="/src/main.js"></script>
-	</body>
-</html>
 
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+  <title>Phaser 3 - Parallax Scrolling Background</title>
+  <style>
+    html,
+    body,
+    .container {
+      margin-top: 50px;
+      width: 100vw;
+      overflow: hidden;
+      background: #164e63;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #play-button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" id="game-container">
+    <img id="play-button" src="assets/images/play.png" alt="Play">
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
