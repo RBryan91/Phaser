@@ -1,22 +1,26 @@
-const AssetKeys = {
-  BACKGROUND: "BACKGROUND",
-  FOG: "FOG",
-  FOREGROUND: "FOREGROUND",
-  TREES: "TREES",
-  GROUND: "GROUND",
-};
-
 var gameOver = false;
-var death = false;
+var death = {
+  active: false,
+  enemy: null,
+};
 var score = 0;
+var count = 0;
 var scoreText;
 var player;
 var coin;
 var ground;
 var goomba;
 var platforms;
-var traps;
 var rush;
+var retryButton;
+var bat;
+var traps;
+var batExists = false;
+var previousPosY = null;
+var soundtrack;
+var coinSound;
+var gameOverSound;
+var enemyDieSound;
 
 const gameConfig = {
   type: Phaser.CANVAS,
@@ -44,14 +48,20 @@ const gameConfig = {
 };
 
 function preload() {
-  this.load.image(AssetKeys.BACKGROUND, "assets/images/background.png");
-  this.load.image(AssetKeys.FOG, "assets/images/fog.png");
-  this.load.image(AssetKeys.FOREGROUND, "assets/images/foreground.png");
-  this.load.image(AssetKeys.TREES, "assets/images/trees.png");
-  this.load.image(AssetKeys.GROUND, "assets/images/ground.png");
+  this.load.image("background", "assets/images/background.png");
+  this.load.image("fog", "assets/images/fog.png");
+  this.load.image("foreground", "assets/images/foreground.png");
+  this.load.image("trees", "assets/images/trees.png");
+  this.load.image("ground", "assets/images/ground.png");
   this.load.image("platform", "assets/images/platform.png");
   this.load.image("rush", "assets/images/rush.png");
-  this.load.image("trap", "assets/images/pique.png")
+  this.load.image("restart", "assets/images/restart.png");
+  this.load.image("trap", "assets/images/pique.png");
+
+  this.load.audio("soundtrack", "assets/sounds/soundtrack.mp3");
+  this.load.audio("coinSound", "assets/sounds/coin.mp3");
+  this.load.audio("gameOverSound", "assets/sounds/gameOver.mp3");
+  this.load.audio("enemyDieSound", "assets/sounds/enemyDie.mp3");
 
   this.load.spritesheet("dude", "assets/images/zelda.png", {
     frameWidth: 63,
@@ -65,6 +75,10 @@ function preload() {
     frameWidth: 55,
     frameHeight: 40,
   });
+  this.load.spritesheet("bat", "assets/images/bat2.png", {
+    frameWidth: 74,
+    frameHeight: 37,
+  });
 }
 
 function create() {
@@ -72,20 +86,17 @@ function create() {
   const width = gameConfig.scale.width;
   const height = gameConfig.scale.height;
 
-  //creation du monde
+  soundtrack = this.sound.add("soundtrack", { loop: true });
+  coinSound = this.sound.add("coinSound", { loop: false });
+  gameOverSound = this.sound.add("gameOverSound", { loop: false });
+  enemyDieSound = this.sound.add("enemyDieSound",{loop:false})
+  soundtrack.play()
 
-  this.bg = this.add
-    .tileSprite(0, 0, width, height, AssetKeys.BACKGROUND)
-    .setScale(2);
-  this.trees = this.add
-    .tileSprite(0, 0, width, height, AssetKeys.TREES)
-    .setScale(2);
-  this.fg = this.add
-    .tileSprite(0, 0, width, height, AssetKeys.FOREGROUND)
-    .setScale(2);
-  this.fog = this.add
-    .tileSprite(0, 0, width, height, AssetKeys.FOG)
-    .setScale(2);
+  //creation du monde
+  this.bg = this.add.tileSprite(0, 0, width, height, "background").setScale(2);
+  this.trees = this.add.tileSprite(0, 0, width, height, "trees").setScale(2);
+  this.fg = this.add.tileSprite(0, 0, width, height, "foreground").setScale(2);
+  this.fog = this.add.tileSprite(0, 0, width, height, "fog").setScale(2);
 
   scoreText = this.add.text(0, 0, "score: 0", {
     fontSize: "32px",
@@ -97,73 +108,25 @@ function create() {
   player.setCollideWorldBounds(true);
 
   ground = this.physics.add.staticGroup();
-  ground.create(width, 416, AssetKeys.GROUND).setScale(2).refreshBody();
-
-  function createGoomba() {
-    if (gameOver) {
-      return;
-    }
-
-    rush = this.add.image(0, 0, "rush");
-    goomba = this.physics.add.sprite(600, 375, "goomba");
-    goomba.setSize(35, 35);
-    rush.setPosition(goomba.x + 75, goomba.y);
-    this.physics.add.collider(goomba, platforms);
-    this.physics.add.collider(goomba, ground);
-    goomba.setCollideWorldBounds(false);
-    this.physics.add.overlap(player, goomba, handleCollision, null, this);
-    this.time.delayedCall(1500, createGoomba, [], this);
-  }
+  ground.create(width, 416, "ground").setScale(2).refreshBody();
 
   createGoomba.call(this);
 
-  //plateformes
-  let count = 0;
   platforms = this.physics.add.group();
   traps = this.physics.add.group();
 
-  // Function to create a single platform and coin
-  function createPlatformAndCoin() {
-    if (gameOver) {
-      return;
-    }
-    const posX = game.config.width + 100;
-    const posY = Phaser.Math.Between(150, 300);
-    const platform = platforms.create(posX, posY, "platform");
-    platform.setSize(170, 25);
-    platform.setOffset(10, 2);
-    const PosXVariable = posX + Phaser.Math.Between(-60,60);
-    if (count % 3 === 0) {
-      coin = this.physics.add.sprite(posX, posY - 50, "coin");
-      coin.setSize(25, 25);
-      coin.setOffset(3, 2);
-      coin.body.allowGravity = false;
-      this.physics.add.overlap(player, coin, collectCoin, null, this);
-    } else {
-      let NombreX = Phaser.Math.Between(1,3) 
-      if (NombreX === 2) {
-        const trap = traps.create(PosXVariable,posY-28,"trap");
-        trap.setSize(35, 15);
-        trap.setOffset(5,8)
-        trap.body.allowGravity = false;
-        trap.body.immovable = true;
-        this.physics.add.overlap(player, trap, handleGameOver, null, this);
-      }
-    }
-
-    count++;
-
-    // Apply physics properties to the created platform and coin
-    platform.body.allowGravity = false;
-    platform.body.immovable = true;
-    coin.body.allowGravity = false;
-
-    // Call the function recursively with a delay
-    this.time.delayedCall(1000, createPlatformAndCoin, [], this);
-  }
-
-  // Start creating platforms and coins with a delayed callback
   createPlatformAndCoin.call(this);
+
+  retryButton = this.add
+    .sprite(330, 208, "restart")
+    .setInteractive()
+    .setVisible(false)
+    .setDepth(5);
+  retryButton.on("pointerdown", function () {
+    if (gameOver) {
+      restartGame();
+    }
+  });
 
   //creation des animations
 
@@ -173,15 +136,30 @@ function create() {
     frameRate: 6,
     repeat: -1,
   });
+
   this.anims.create({
     key: "attack",
     frames: this.anims.generateFrameNumbers("goomba", { start: 0, end: 2 }),
     frameRate: 12,
     repeat: -1,
   });
+
   this.anims.create({
     key: "dead",
     frames: [{ key: "goomba", frame: 3 }],
+    frameRate: 20,
+  });
+
+  this.anims.create({
+    key: "fly",
+    frames: this.anims.generateFrameNumbers("bat", { start: 0, end: 3 }),
+    frameRate: 10,
+    repeat: -1,
+  });
+
+  this.anims.create({
+    key: "deadBat",
+    frames: [{ key: "bat", frame: 4 }],
     frameRate: 20,
   });
 
@@ -215,22 +193,34 @@ function create() {
   //add physics
   this.physics.add.collider(player, platforms);
   this.physics.add.collider(player, ground);
+
 }
 
 function update() {
-  if (death) {
-    goomba.anims.play("dead", true);
-    setTimeout(() => {
-      goomba.disableBody(true, true);
-      death = false;
-    }, 200);
-  } else {
-    goomba.anims.play("attack", true);
-  }
   if (gameOver) {
     return;
   }
-  if (player.x <= 25) {
+
+  //gestion mort d'un monstre
+  if (death.active) {
+    if (death.enemy === "goomba") {
+      goomba.anims.play("dead", true);
+      setTimeout(() => {
+        goomba.disableBody(true, true);
+        death.active = false;
+      }, 200);
+    } else {
+      bat.anims.play("deadBat", true);
+      bat.body.allowGravity = true;
+      setTimeout(() => {
+        death.active = false;
+      }, 500);
+    }
+  } else {
+    goomba.anims.play("attack", true);
+  }
+
+  if (player.x <= 20) {
     handleGameOver();
   }
 
@@ -250,18 +240,25 @@ function update() {
   coin.anims.play("turn", true);
   coin.x -= 5;
 
-  goomba.x -= 10;
-  rush.x -= 10;
   player.x -= 1.6;
 
-  player.anims.play("right", true);
+  goomba.x -= 10;
+  rush.x -= 10;
+
+  if (bat) {
+    if (!death.active) bat.anims.play("fly", true);
+    bat.x -= 7;
+    if (bat.x < 0) {
+      batExists = false;
+    }
+  }
 
   //controle
   if (this.cursors.left.isDown) {
     player.setVelocityX(-160);
     player.anims.play("left", true);
   } else if (this.cursors.right.isDown) {
-    player.setVelocityX(160);
+    player.setVelocityX(200);
     player.anims.play("right", true);
   } else {
     player.setVelocityX(0);
@@ -277,49 +274,166 @@ function update() {
 }
 
 function handleGameOver() {
+  gameOverSound.play();
   player.disableBody(true, true);
   gameOver = true;
+  retryButton.setVisible(true);
+  soundtrack.pause();
+  soundtrack.resume();
 }
 
 function collectCoin() {
+  coinSound.play()
   coin.disableBody(true, true);
   score += 10;
   scoreText.setText("Score: " + score);
 }
 
-function handleCollision() {
-  if (death) {
+function handleCollision(enemy) {
+  if (death.active) {
     return;
   }
-  // Determine the side of collision
   const playerBounds = player.getBounds();
-  const goombaBounds = goomba.getBounds();
+  const enemyBounds = enemy.getBounds();
 
   const playerBottom = playerBounds.bottom;
-  const goombaBottom = goombaBounds.bottom;
+  const enemyBottom = enemyBounds.bottom;
   const playerCenterX = playerBounds.centerX;
-  const goombaCenterX = goombaBounds.centerX;
-  const offsetX = playerCenterX - goombaCenterX;
+  const enemyCenterX = enemyBounds.centerX;
+  const offsetX = playerCenterX - enemyCenterX;
 
   if (Math.abs(offsetX) > Math.abs(playerBounds.width / 2)) {
-    // Player collided from the left or right side of the enemy
-    if (playerBottom < goombaBottom - 10) {
-      killEnemy();
+    if (playerBottom < enemyBottom - 10) {
+      killEnemy(enemy);
     } else {
       handleGameOver();
     }
   } else {
-    // Player collided from the top or bottom side of the enemy
-    if (playerBottom < goombaBottom) {
-      killEnemy();
+    if (playerBottom < enemyBottom) {
+      killEnemy(enemy);
     } else {
       handleGameOver();
     }
   }
 }
-function killEnemy() {
-  rush.destroy();
-  death = true;
+function killEnemy(enemy) {
+  enemyDieSound.play();
+  death.active = true;
+  death.enemy = enemy.texture.key;
+  if (enemy.texture.key === "goomba") rush.destroy();
+  score += 10;
+  scoreText.setText("Score: " + score);
 }
 
-const game = new Phaser.Game(gameConfig);
+function createGoomba() {
+  if (gameOver) {
+    return;
+  }
+  rush = this.add.image(0, 0, "rush");
+  goomba = this.physics.add.sprite(600, 375, "goomba");
+  goomba.setSize(30, 30);
+  rush.setPosition(goomba.x + 75, goomba.y);
+  this.physics.add.collider(goomba, platforms);
+  this.physics.add.collider(goomba, ground);
+  goomba.setCollideWorldBounds(false);
+  this.physics.add.overlap(
+    player,
+    goomba,
+    function () {
+      handleCollision(goomba);
+    },
+    null,
+    this
+  );
+  this.time.delayedCall(1500, createGoomba, [], this);
+}
+
+function createPlatformAndCoin() {
+  if (gameOver) {
+    return;
+  }
+  const posX = game.config.width + 100;
+  let posY;
+  do {
+    posY = Phaser.Math.Between(150, 300);
+  } while (posY >= previousPosY - 75 && posY <= previousPosY + 75);
+  previousPosY = posY;
+  let posYbis;
+  do {
+    posYbis = Phaser.Math.Between(50, 350);
+  } while (posYbis >= posY - 50 && posYbis <= posY + 50);
+  const platform = platforms.create(posX, posY, "platform");
+  platform.setSize(170, 25);
+  platform.setOffset(10, 2);
+  const PosXVariable = posX + Phaser.Math.Between(-60, 60);
+  if (count % 3 === 0) {
+    coin = this.physics.add.sprite(posX, posY - 50, "coin");
+    coin.setSize(25, 25);
+    coin.setOffset(3, 2);
+    coin.body.allowGravity = false;
+    this.physics.add.overlap(player, coin, collectCoin, null, this);
+  } else {
+    let NombreX = Phaser.Math.Between(1, 3);
+    if (NombreX === 2) {
+      const trap = traps.create(PosXVariable, posY - 28, "trap");
+      trap.setSize(35, 15);
+      trap.setOffset(5, 8);
+      trap.body.allowGravity = false;
+      trap.body.immovable = true;
+      this.physics.add.overlap(player, trap, handleGameOver, null, this);
+    }
+  }
+
+  count++;
+
+  if (!batExists) {
+    var rand = Phaser.Math.Between(1, 2);
+    if (rand === 1) {
+      bat = this.physics.add.sprite(posX, posYbis, "bat");
+      bat.setSize(20, 20);
+      bat.setCollideWorldBounds(false);
+      bat.body.allowGravity = false;
+      this.physics.add.overlap(
+        player,
+        bat,
+        function () {
+          handleCollision(bat);
+        },
+        null,
+        this
+      );
+      batExists = true;
+    }
+  }
+
+  platform.body.allowGravity = false;
+  platform.body.immovable = true;
+  coin.body.allowGravity = false;
+
+  this.time.delayedCall(1000, createPlatformAndCoin, [], this);
+}
+
+function restartGame() {
+  gameOver = false;
+  death.active = false;
+  death.enemy = null;
+  score = 0;
+  count = 0;
+  batExists = false;
+
+  game.destroy(true);
+  game = new Phaser.Game(gameConfig);
+}
+
+let game = null;
+
+function startGame() {
+  document.getElementById("play-button").style.display = "none";
+
+  if (game) {
+    game.destroy();
+  }
+  game = new Phaser.Game(gameConfig);
+}
+
+document.getElementById("play-button").addEventListener("click", startGame);
