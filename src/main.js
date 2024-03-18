@@ -5,7 +5,9 @@ var death = {
 };
 var score = 0;
 var count = 0;
+var level = 0;
 var scoreText;
+var levelText;
 var player;
 var coin;
 var ground;
@@ -98,7 +100,11 @@ function create() {
   this.fg = this.add.tileSprite(0, 0, width, height, "foreground").setScale(2);
   this.fog = this.add.tileSprite(0, 0, width, height, "fog").setScale(2);
 
-  scoreText = this.add.text(0, 0, "score: 0", {
+  scoreText = this.add.text(0, 0, "Score: 0", {
+    fontSize: "32px",
+    fill: "#000",
+  });
+  levelText = this.add.text(470, 0, "Level: 0", {
     fontSize: "32px",
     fill: "#000",
   });
@@ -230,15 +236,16 @@ function update() {
   this.fg.tilePositionX += 0.8;
   this.fog.tilePositionX += 2.8;
 
-  platforms.children.iterate((child) => {
-    child.x -= 5;
-  });
+    platforms.children.iterate((child) => {
+      child.x -= (5 + level);
+    });
+  
   traps.children.iterate((child) => {
-    child.x -= 5;
+    child.x -= (5 + level);
   });
 
   coin.anims.play("turn", true);
-  coin.x -= 5;
+  coin.x -= (5 + level);
 
   player.x -= 1.6;
 
@@ -287,6 +294,13 @@ function collectCoin() {
   coin.disableBody(true, true);
   score += 10;
   scoreText.setText("Score: " + score);
+  console.log(score)
+  console.log(score % 50 === 0)
+  if (score % 50 === 0 && score !== 0) {
+    console.log("ça rentre")
+    level += 1;
+    levelText.setText("Level : " + level)
+  }
 }
 
 function handleCollision(enemy) {
@@ -323,6 +337,11 @@ function killEnemy(enemy) {
   if (enemy.texture.key === "goomba") rush.destroy();
   score += 10;
   scoreText.setText("Score: " + score);
+  if (score % 50 === 0 && score !== 0) {
+    console.log("ça rentre")
+    level += 1;
+    levelText.setText("Level : " + level)
+  }
 }
 
 function createGoomba() {
@@ -418,6 +437,7 @@ function restartGame() {
   death.active = false;
   death.enemy = null;
   score = 0;
+  level = 0;
   count = 0;
   batExists = false;
 
